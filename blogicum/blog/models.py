@@ -102,5 +102,8 @@ class Post(BaseModel):
         verbose_name_plural = 'Публикации'
         ordering = ('-pub_date',)
 
+    def get_absolute_url(self):
+        return reverse('blog:profile', kwargs={'username': self.author})
+
     def __str__(self) -> str:
         return self.title[:constants.REPRESENTATION_LENGTH]

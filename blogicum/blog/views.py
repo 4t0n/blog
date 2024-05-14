@@ -2,27 +2,24 @@ from typing import Any
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models.base import Model as Model
+from django.db.models.query import QuerySet
 from django.forms import BaseModelForm
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render, get_list_or_404, get_object_or_404
+from django.http.response import HttpResponseRedirect
+from django.shortcuts import redirect, render, get_list_or_404, get_object_or_404
+from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView, ListView, DetailView, UpdateView
 
 import constants
 from .models import Post, Category
-from .forms import PostForm
+from .forms import PostForm, CustomUserForm
 
 User = get_user_model()
 
 
-class OnlyAuthorMixin(UserPassesTestMixin):
-
-    def test_func(self):
-        object = self.get_object()
-        return object.author == self.request.user
-
-
-class PostCreateView(CreateView):
+class PostCreateView(LoginRequiredMixin, CreateView):
     model = Post
     form_class = PostForm
     template_name = 'blog/create.html'
@@ -56,10 +53,38 @@ class ProfileListView(ListView):
         return context
 
 
-class ProfileUpdateView(CreateView):
+class ProfileUpdateView(UpdateView):
     model = User
-    form_class = UserCreationForm
+    form_class = CustomUserForm
     template_name = 'blog/user.html'
+    success_url = reverse_lazy('blog:index')
+
+    def get_object(self, queryset: QuerySet[Any] | None = ...) -> Model:
+        return self.request.user
+
+
+class PostDetailView(DetailView):
+    model = Post
+    template_name = 'blog/detail.html'
+
+    def form_valid(self, form: BaseModelForm) -> HttpResponse:
+        form.instance.author = self.request.user
+        return super().form_valid(form)
+
+
+class PostUpdateView(LoginRequiredMixin, UpdateView):
+    model = Post
+    template_name = 'blog/create.html'
+    form_class = PostForm
+
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        if request.user.is_authenticated:
+            if request.user != self.get_object().author:
+                return redirect('blog:post_detail', self.kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self) -> str:
+        return reverse_lazy('blog:post_detail', kwargs={'pk': self.kwargs['pk']})
 
 
 def index(request: HttpRequest) -> HttpResponse:
