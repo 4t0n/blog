@@ -10,9 +10,8 @@ from django.http.response import HttpResponseRedirect
 from django.shortcuts import redirect, render, get_list_or_404, get_object_or_404
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import CreateView, ListView, DetailView, UpdateView
+from django.views.generic import CreateView, ListView, DetailView, UpdateView, DeleteView
 
-import constants
 from .models import Post, Category
 from .forms import PostForm, CustomUserForm
 
@@ -87,21 +86,27 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
         return reverse_lazy('blog:post_detail', kwargs={'pk': self.kwargs['pk']})
 
 
-def index(request: HttpRequest) -> HttpResponse:
-    template = 'blog/index.html'
-    post_list = Post.filter_objects.all()[:constants.POSTS_BY_PAGE]
-    context = {'post_list': post_list}
-    return render(request, template, context)
+class PostDeleteView(LoginRequiredMixin, DeleteView):
+    model = Post
+    template_name = 'blog/create.html'
+    success_url = reverse_lazy('blog:index')
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context['form'] = PostForm(instance=self.object)
+        return context
 
 
-def post_detail(request: HttpRequest, post_id: int) -> HttpResponse:
-    template = 'blog/detail.html'
-    post = get_object_or_404(
-        Post.filter_objects.all(),
-        pk=post_id,
-    )
-    context = {'post': post}
-    return render(request, template, context)
+class PostCategoriesListView(ListView):
+    model = Category
+    template_name = 'blog/category.html'
+    paginate_by = 10
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        object_list = Category.objects.get(slug=self.kwargs['category_slug']).category.all()
+        context = super().get_context_data(object_list=object_list, **kwargs)
+        context['category'] = Category.objects.get(slug=self.kwargs['category_slug'])
+        return context
 
 
 # def category_posts(request: HttpRequest,
@@ -116,7 +121,23 @@ def post_detail(request: HttpRequest, post_id: int) -> HttpResponse:
 #         category__is_published=True,
 #     )
 #     category = Category.objects.get(slug=category_slug)
-#     context = {'category': category, 'post_list': post_list}
+#     context = {'category': category, 'page_obj': post_list}
 #     return render(request, template, context)
 
+
+# def index(request: HttpRequest) -> HttpResponse:
+#     template = 'blog/index.html'
+#     post_list = Post.filter_objects.all()[:constants.POSTS_BY_PAGE]
+#     context = {'post_list': post_list}
+#     return render(request, template, context)
+
+
+# def post_detail(request: HttpRequest, post_id: int) -> HttpResponse:
+#     template = 'blog/detail.html'
+#     post = get_object_or_404(
+#         Post.filter_objects.all(),
+#         pk=post_id,
+#     )
+#     context = {'post': post}
+#     return render(request, template, context)
 # https://pocoz.gitbooks.io/django-v-primerah/content/glava-4-sozdanie-social-website/registratsiya-polzovatelei-i-profili-polzovatelei/rasshirenie-modeli-user.html
