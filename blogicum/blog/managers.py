@@ -9,4 +9,4 @@ class PostManager(Manager):
             pub_date__lte=timezone.now(),
             is_published=True,
             category__is_published=True,
-        )
+        ).order_by('-pub_date')
