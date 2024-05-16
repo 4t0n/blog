@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_bootstrap5',
+    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
@@ -53,6 +54,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'blogicum.urls'
@@ -147,3 +149,7 @@ EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
 CSRF_FAILURE_VIEW = 'pages.views.csrf_failure'
 
 MEDIA_ROOT = BASE_DIR / 'media'
+
+INTERNAL_IPS = [
+'127.0.0.1',
+]

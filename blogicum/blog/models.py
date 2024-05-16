@@ -1,5 +1,5 @@
-from django.db import models
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.urls import reverse
 
 import constants
@@ -120,9 +120,19 @@ class Comment(models.Model):
         Post,
         on_delete=models.CASCADE,
         related_name='comments',
+        verbose_name='Публикация',
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Добавлено',
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Автор комментария',
+    )
 
     class Meta:
-        ordering = ('-created_at',)
+        verbose_name = 'комментарий'
+        verbose_name_plural = 'Комментарии'
+        ordering = ('created_at',)
