@@ -6,7 +6,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models.base import Model as Model
 from django.db.models.query import QuerySet
 from django.forms import BaseModelForm
-from django.http import HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.http.response import HttpResponseRedirect
 from django.shortcuts import redirect, render, get_list_or_404, get_object_or_404
 from django.urls import reverse, reverse_lazy
@@ -17,6 +17,13 @@ from .models import Post, Category, Comment
 from .forms import PostForm, CustomUserForm, CommentForm
 
 User = get_user_model()
+
+
+class OnlyAuthorMixin(UserPassesTestMixin):
+
+    def test_func(self):
+        object = self.get_object()
+        return object.author == self.request.user
 
 
 class PostCreateView(LoginRequiredMixin, CreateView):
@@ -45,7 +52,7 @@ class ProfileListView(ListView):
     paginate_by = 10
 
     def get_queryset(self) -> QuerySet[Any]:
-        return Post.objects.filter(author__username=self.kwargs['username']).annotate(comment_count=models.Count('comments')).all()
+        return Post.objects.filter(author__username=self.kwargs['username']).annotate(comment_count=models.Count('comments')).all().order_by('-pub_date')
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
@@ -69,6 +76,11 @@ class ProfileUpdateView(UpdateView):
 class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/detail.html'
+
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        if request.user != self.get_object().author and (not self.get_object().is_published or not self.get_object().category.is_published or self.get_object().pub_date > timezone.now()):
+            raise Http404
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form: BaseModelForm) -> HttpResponse:
         form.instance.author = self.request.user
@@ -101,6 +113,12 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'blog/create.html'
     success_url = reverse_lazy('blog:index')
 
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        if request.user.is_authenticated:
+            if request.user != self.get_object().author:
+                return redirect('blog:post_detail', self.kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context['form'] = PostForm(instance=self.object)
@@ -108,18 +126,21 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
 
 
 class PostCategoriesListView(ListView):
-    model = Category
+    model = Post
     template_name = 'blog/category.html'
     paginate_by = 10
 
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        if not Category.objects.get(slug=self.kwargs['category_slug']).is_published:
+            raise Http404
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self) -> QuerySet[Any]:
+        query = Post.published_posts.annotate(comment_count=models.Count('comments')).filter(category__slug=self.kwargs['category_slug']).all()
+        return query
+
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        object_list = get_list_or_404(
-            Category.objects.get(
-                slug=self.kwargs['category_slug']
-            ).category.all(),
-            category__is_published=True
-        )
-        context = super().get_context_data(object_list=object_list, **kwargs)
+        context = super().get_context_data(**kwargs)
         context['category'] = Category.objects.get(slug=self.kwargs['category_slug'])
         return context
 
