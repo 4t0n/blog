@@ -150,6 +150,8 @@ CSRF_FAILURE_VIEW = 'pages.views.csrf_failure'
 
 MEDIA_ROOT = BASE_DIR / 'media'
 
+MEDIA_URL = '/media/'
+
 INTERNAL_IPS = [
-'127.0.0.1',
+    '127.0.0.1',
 ]

@@ -119,8 +119,8 @@ class Comment(models.Model):
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
+        verbose_name='Комментируемая публикация',
         related_name='comments',
-        verbose_name='Публикация',
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -130,9 +130,13 @@ class Comment(models.Model):
         User,
         on_delete=models.CASCADE,
         verbose_name='Автор комментария',
+        related_name='comments',
     )
 
     class Meta:
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
         ordering = ('created_at',)
+
+    def __str__(self) -> str:
+        return self.text[:30]
