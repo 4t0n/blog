@@ -47,12 +47,12 @@ urlpatterns = [
     ),
     path(
         'profile/<slug:username>/',
-        views.ProfileListView.as_view(),
+        views.PostInProfileListView.as_view(),
         name='profile',
     ),
     path(
         'category/<slug:category_slug>/',
-        views.PostCategoriesListView.as_view(),
+        views.PostInCategoryListView.as_view(),
         name='category_posts',
     ),
 ]

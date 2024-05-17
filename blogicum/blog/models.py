@@ -24,6 +24,8 @@ class BaseModel(models.Model):
 
 
 class Category(BaseModel):
+    """Модель категории публикации."""
+
     title = models.CharField(
         max_length=constants.MAX_FIELD_LENGTH,
         verbose_name='Заголовок',
@@ -47,6 +49,8 @@ class Category(BaseModel):
 
 
 class Location(BaseModel):
+    """Модель местоположения в публикации."""
+
     name = models.CharField(
         max_length=constants.MAX_FIELD_LENGTH,
         verbose_name='Название места',
@@ -61,6 +65,8 @@ class Location(BaseModel):
 
 
 class Post(BaseModel):
+    """Модель публикации."""
+
     title = models.CharField(
         max_length=constants.MAX_FIELD_LENGTH,
         verbose_name='Заголовок',
@@ -115,6 +121,8 @@ class Post(BaseModel):
 
 
 class Comment(models.Model):
+    """Модель комментария публикации."""
+
     text = models.TextField('Текст комментария')
     post = models.ForeignKey(
         Post,

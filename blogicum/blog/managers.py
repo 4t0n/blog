@@ -1,4 +1,4 @@
-from django.db.models import Manager
+from django.db.models import Manager, Count
 from django.db.models.query import QuerySet
 from django.utils import timezone
 
@@ -9,4 +9,12 @@ class PostManager(Manager):
             pub_date__lte=timezone.now(),
             is_published=True,
             category__is_published=True,
-        ).order_by('-pub_date')
+        ).annotate(
+            comment_count=Count('comments')
+        ).select_related(
+            'author',
+            'category',
+            'location',
+        ).order_by(
+            '-pub_date',
+        )
