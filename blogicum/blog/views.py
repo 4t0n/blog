@@ -92,7 +92,7 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'blog/user.html'
     success_url = reverse_lazy('blog:index')
 
-    def get_object(self, queryset: QuerySet[Any] | None = ...) -> Model:
+    def get_object(self, queryset=None) -> Model:
         return self.request.user
 
 
@@ -205,36 +205,54 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
         return reverse_lazy('blog:post_detail', args=[self.kwargs['post_id']])
 
 
-class CommentUpdateView(OnlyAuthorMixin, UpdateView):
+class CommentUpdateView(UpdateView):
     """Редактирование комментария."""
 
     model = Comment
     template_name = 'blog/comment.html'
     form_class = CommentForm
 
-    def get_object(self, queryset: QuerySet[Any] | None = ...) -> Model:
+    def get_object(self) -> Model:
         return get_object_or_404(
             Comment,
             post=self.kwargs['post_id'],
             pk=self.kwargs['comment_id']
         )
+
+    def dispatch(
+            self,
+            request: HttpRequest,
+            *args: Any,
+            **kwargs: Any) -> HttpResponse:
+        if request.user != self.get_object().author:
+            raise Http404
+        return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
         return reverse_lazy('blog:post_detail', args=[self.kwargs['post_id']])
 
 
-class CommentDeleteView(OnlyAuthorMixin, DeleteView):
+class CommentDeleteView(DeleteView):
     """Удаление комментария."""
 
     model = Comment
     template_name = 'blog/comment.html'
 
-    def get_object(self, queryset: QuerySet[Any] | None = ...) -> Model:
+    def get_object(self) -> Model:
         return get_object_or_404(
             Comment,
             post=self.kwargs['post_id'],
             pk=self.kwargs['comment_id']
         )
+
+    def dispatch(
+            self,
+            request: HttpRequest,
+            *args: Any,
+            **kwargs: Any) -> HttpResponse:
+        if request.user != self.get_object().author:
+            raise Http404
+        return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self) -> str:
         return reverse_lazy('blog:post_detail', args=[self.kwargs['post_id']])
