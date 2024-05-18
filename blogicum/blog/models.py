@@ -2,18 +2,24 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.urls import reverse
 
-import constants
+import blogicum.constants as constants
 from .managers import PostManager
 
 User = get_user_model()
 
 
-class BaseModel(models.Model):
+class AvailabilityBaseModel(models.Model):
     is_published = models.BooleanField(
         default=True,
         verbose_name='Опубликовано',
         help_text='Снимите галочку, чтобы скрыть публикацию.',
     )
+
+    class Meta:
+        abstract = True
+
+
+class DateBaseModel(models.Model):
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='Добавлено',
@@ -23,7 +29,7 @@ class BaseModel(models.Model):
         abstract = True
 
 
-class Category(BaseModel):
+class Category(AvailabilityBaseModel, DateBaseModel):
     """Модель категории публикации."""
 
     title = models.CharField(
@@ -48,7 +54,7 @@ class Category(BaseModel):
         return self.title[:constants.REPRESENTATION_LENGTH]
 
 
-class Location(BaseModel):
+class Location(AvailabilityBaseModel, DateBaseModel):
     """Модель местоположения в публикации."""
 
     name = models.CharField(
@@ -64,7 +70,7 @@ class Location(BaseModel):
         return self.name[:constants.REPRESENTATION_LENGTH]
 
 
-class Post(BaseModel):
+class Post(AvailabilityBaseModel, DateBaseModel):
     """Модель публикации."""
 
     title = models.CharField(
@@ -120,7 +126,7 @@ class Post(BaseModel):
         return self.title[:constants.REPRESENTATION_LENGTH]
 
 
-class Comment(models.Model):
+class Comment(DateBaseModel):
     """Модель комментария публикации."""
 
     text = models.TextField('Текст комментария')
@@ -129,10 +135,6 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         verbose_name='Комментируемая публикация',
         related_name='comments',
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Добавлено',
     )
     author = models.ForeignKey(
         User,
